@@ -1,0 +1,81 @@
+---
+title: "Analysis"
+author: "Patrick Bigler"
+date: "2024-04-15"
+output: html_document
+---
+
+# **Preparation**
+
+## Packages
+
+```{r Install and Load all Packages, echo=FALSE, message=FALSE, warning=FALSE}
+# Decide which packages you need. Here, we start we some common packages
+packages <- c('influxdbclient', 'ggplot2', 'tidyverse', 'lubridate', 'dplyr', 
+              'caret','vip', 'parsnip', 'workflows', 'tune', 'dials', 'stringr',
+              'terra', 'stars','sf', 'plyr', 'doParallel', 'foreach', 'terrainr',
+              'starsExtra', 'pdp', 'recipes', 'tidyterra', 'shiny', 'xgboost', 
+              'kableExtra', 'rnaturalearth', 'zoo','moments', 'tibble', 'rsample',
+              'yardstick', 'cowplot', 'purrr', 'renv', 'ranger', 'Boruta',
+              'devtools', 'sp', 'keras', 'tensorflow', 'kableExtra')
+
+# Import a function to install and load (if necessary) alle packages you need
+source('../R/package_function.R')
+# Function call
+load_packages(packages)
+```
+
+## Data
+
+```{r message=FALSE, warning=FALSE}
+meteodata <- read_csv('../data/meteodata.csv')
+```
+
+# **Quality Control**
+
+d
+
+```{r}
+# Check if all stations covers the right time
+kable(meteodata|>
+    group_by(stn)|>
+    summarise(row_count = n()), booktabs = TRUE) %>%
+    kable_styling(font_size = 8)
+
+# Check if the station mean for each measurement is reasonable
+kable(meteodata|>
+          select(-c(`time`))|>
+          group_by(stn)|>
+          summarise(across(everything(), list(mean), na.rm = TRUE)))|>
+  kable_styling(font_size = 8)
+```
+
+```{r}
+meteodata|>
+  group_by(time, stn)|>
+  ggplot(aes(x = time, y = vapor_pressure, color = stn))+
+    geom_line()+
+    theme_bw()
+
+meteodata|>
+  group_by(time, stn)|>
+  ggplot(aes(x = time, y = t2m_mean, color = stn))+
+    geom_line()+
+    theme_bw()
+
+meteodata|>
+  group_by(time, stn)|>
+  ggplot(aes(x = time, y = new_snow, color = stn))+
+    geom_line()+
+    theme_bw()
+
+meteodata|>
+  group_by(time, stn)|>
+  ggplot(aes(x = time, y = pressure, color = stn))+
+    geom_line()+
+    theme_bw()
+```
+
+```{r}
+
+```

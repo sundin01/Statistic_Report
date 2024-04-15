@@ -1,0 +1,540 @@
+---
+title: "Statistic Report"
+author: "Patrick Bigler"
+date: "2024-04-15"
+output: html_document
+---
+
+
+```{r Install and Load all Packages, echo=FALSE, message=FALSE, warning=FALSE}
+# Decide which packages you need. Here, we start we some common packages
+packages <- c('influxdbclient', 'ggplot2', 'tidyverse', 'lubridate', 'dplyr', 
+              'caret','vip', 'parsnip', 'workflows', 'tune', 'dials', 'stringr',
+              'terra', 'stars','sf', 'plyr', 'doParallel', 'foreach', 'terrainr',
+              'starsExtra', 'pdp', 'recipes', 'tidyterra', 'shiny', 'xgboost', 
+              'kableExtra', 'rnaturalearth', 'zoo','moments', 'tibble', 'rsample',
+              'yardstick', 'cowplot', 'purrr', 'renv', 'ranger', 'Boruta',
+              'devtools', 'sp', 'keras', 'tensorflow')
+
+# Import a function to install and load (if necessary) alle packages you need
+source('../R/package_function.R')
+# Function call
+load_packages(packages)
+```
+
+
+```{r Load the Data, message=TRUE, warning=TRUE, include=FALSE}
+source('../R/data_import_function.R')
+data <- data_import()
+
+
+
+loop <- c('ANT', 'RAG', 'CHD', 'GSB', 'ENG', 'GVE', 'GRH', 
+          'JUN', 'LUZ', 'NEU', 'SIA', 'SAE')
+
+my_list <- list()
+for (station in loop) {
+  # Filter data for the current station
+  filtered_data <- data |>
+    filter(stn == station)
+  # Append filtered data to the list
+  my_list[[station]] <- filtered_data
+}
+
+
+ANT <- my_list[['ANT']]|>
+  rename('pva200m0' = pva200m0,
+         'tre200mn' = tre200mn,
+         'tre200m0' = tre200m0,
+         'hns000m0' = hns000m0,
+         'rre150m0' = rre150m0,
+         'ure200mn' = ure200mn,
+         'ure200m0' =  ure200m0,
+         'hto000m0' = hto000m0,
+         'ets150m0' = ets150m0,
+         'gre000m0' = gre000m0,
+         'prestam0' = prestam0,
+         'tre200mx' = tre200mx,
+         'su2000m0' = su2000m0,
+         'sremaxmv' = sremaxmv,
+         'fkl010m0' = fkl010m0,
+         'nto000m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+RAG <- my_list[['RAG']]|>
+  rename('pva200m0' = pva200m0,
+         'prestam0' = tre200mn,
+         'tre200m0' = tre200m0,
+         'rre150m0' = hns000m0,
+         'ets150m0' = rre150m0,
+         'gre000m0' = ure200mn,
+         'tre200mx' = ure200m0,
+         'tre200mn' = hto000m0,
+         'ure200mn' = ets150m0,
+         'ure200m0' = gre000m0,
+         'sremaxmv' = prestam0,
+         'fkl010m0' = tre200mx,
+         'nto000m0' = su2000m0,
+         'hns000m0' = sremaxmv,
+         'hto000m0' = fkl010m0,
+         'tre005mn' = nto000m0,
+         'su2000m0' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+CHD <- my_list[['CHD']]|>
+  rename('pva200m0' = pva200m0,
+         'prestam0' = tre200mn,
+         'tre200mx' = tre200m0,
+         'tre200mn' = hns000m0,
+         'tre200m0' = rre150m0,
+         'hns000m0' = ure200mn,
+         'rre150m0' = ure200m0,
+         'ure200mn' = hto000m0,
+         'ure200m0' = ets150m0,
+         'hto000m0' = gre000m0,
+         'ets150m0' = prestam0,
+         'gre000m0' = tre200mx,
+         'su2000m0' = su2000m0,
+         'sremaxmv' = sremaxmv,
+         'fkl010m0' = fkl010m0,
+         'nto000m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+GSB <- my_list[['GSB']]|>
+  rename('pva200m0' = pva200m0,
+         'nto000m0' = tre200mn,
+         'gre000m0' = tre200m0,
+         'prestam0' = hns000m0,
+         'tre200mx' = rre150m0,
+         'tre200mn' = ure200mn,
+         'tre200m0' = ure200m0,
+         'rre150m0' = hto000m0,
+         'ure200m0' = ets150m0,
+         'su2000m0' = gre000m0,
+         'sremaxmv' = prestam0,
+         'fkl010m0' = tre200mx,
+         'hns000m0' = su2000m0,
+         'ure200mn' = sremaxmv,
+         'hto000m0' = fkl010m0,
+         'ets150m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+ENG <- my_list[['ENG']]|>
+  rename('pva200m0' = pva200m0,
+         'ets150m0' = tre200mn,
+         'gre000m0' = tre200m0,
+         'prestam0' = hns000m0,
+         'tre200mx' = rre150m0,
+         'tre200mn' = ure200mn,
+         'tre200m0' = ure200m0,
+         'rre150m0' = hto000m0,
+         'ure200m0' = ets150m0,
+         'su2000m0' = gre000m0,
+         'sremaxmv' = prestam0,
+         'fkl010m0' = tre200mx,
+         'tre005mn' = su2000m0,
+         'hns000m0' = sremaxmv,
+         'ure200mn' = fkl010m0,
+         'hto000m0' = nto000m0,
+         'nto000m0' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+GVE <- my_list[['GVE']]|>
+  rename('pva200m0' = pva200m0,
+         'ets150m0' = tre200mn,
+         'nto000m0' = tre200m0,
+         'gre000m0' = hns000m0,
+         'prestam0' = rre150m0,
+         'tre200mx' = ure200mn,
+         'tre200mn' = ure200m0,
+         'tre200m0' = hto000m0,
+         'hns000m0' = ets150m0,
+         'rre150m0' = gre000m0,
+         'ure200m0' = prestam0,
+         'hto000m0' = tre200mx,
+         'su2000m0' = su2000m0,
+         'sremaxmv' = sremaxmv,
+         'fkl010m0' = fkl010m0,
+         'tre005mn' = nto000m0,
+         'ure200mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+GRH <- my_list[['GRH']]|>
+  rename('pva200m0' = pva200m0,
+         'ets150m0' = tre200mn,
+         'gre000m0' = tre200m0,
+         'prestam0' = hns000m0,
+         'tre200mx' = rre150m0,
+         'tre200mn' = ure200mn,
+         'tre200m0' = ure200m0,
+         'rre150m0' = hto000m0,
+         'ure200m0' = ets150m0,
+         'su2000m0' = gre000m0,
+         'sremaxmv' = prestam0,
+         'nto000m0' = tre200mx,
+         'hns000m0' = su2000m0,
+         'hto000m0' = sremaxmv,
+         'ure200mn' = fkl010m0,
+         'fkl010m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+JUN <- my_list[['JUN']]|>
+  rename('pva200m0' = pva200m0,
+         'nto000m0' = tre200mn,
+         'gre000m0' = tre200m0,
+         'prestam0' = hns000m0,
+         'tre200mx' = rre150m0,
+         'tre200mn' = ure200mn,
+         'tre200m0' = ure200m0,
+         'ure200m0' = hto000m0,
+         'su2000m0' = ets150m0,
+         'sremaxmv' = gre000m0,
+         'fkl010m0' = prestam0,
+         'ure200mn' = tre200mx,
+         'ets150m0' = su2000m0,
+         'hto000m0' = sremaxmv,
+         'rre150m0' = fkl010m0,
+         'hns000m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+LUZ <- my_list[['LUZ']]|>
+  rename('pva200m0' = pva200m0,
+         'gre000m0' = tre200mn,
+         'prestam0' = tre200m0,
+         'tre200mx' = hns000m0,
+         'tre200mn' = rre150m0,
+         'tre200m0' = ure200mn,
+         'rre150m0' = ure200m0,
+         'ure200m0' = hto000m0,
+         'su2000m0' = ets150m0,
+         'sremaxmv' = gre000m0,
+         'fkl010m0' = prestam0,
+         'ets150m0' = tre200mx,
+         'nto000m0' = su2000m0,
+         'tre005mn' = sremaxmv,
+         'hns000m0' = fkl010m0,
+         'hto000m0' = nto000m0,
+         'ure200mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+NEU <- my_list[['NEU']]|>
+  rename('pva200m0' = pva200m0,
+         'ets150m0' = tre200mn,
+         'gre000m0' = tre200m0,
+         'prestam0' = hns000m0,
+         'tre200mx' = rre150m0,
+         'tre200mn' = ure200mn,
+         'tre200m0' = ure200m0,
+         'hns000m0' = hto000m0,
+         'rre150m0' = ets150m0,
+         'ure200m0' = gre000m0,
+         'hto000m0' = prestam0,
+         'su2000m0' = tre200mx,
+         'sremaxmv' = su2000m0,
+         'fkl010m0' = sremaxmv,
+         'nto000m0' = fkl010m0,
+         'tre005mn' = nto000m0,
+         'ure200mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+SIA <- my_list[['SIA']]|>
+  rename('pva200m0' = pva200m0,
+         'tre200mx' = tre200mn,
+         'tre200mn' = tre200m0,
+         'tre200m0' = hns000m0,
+         'rre150m0' = rre150m0,
+         'ure200mn' = ure200mn,
+         'ure200m0' = ure200m0,
+         'ets150m0' = hto000m0,
+         'gre000m0' = ets150m0,
+         'prestam0' = gre000m0,
+         'su2000m0' = prestam0,
+         'sremaxmv' = tre200mx,
+         'fkl010m0' = su2000m0,
+         'nto000m0' = sremaxmv,
+         'tre005mn' = fkl010m0,
+         'hns000m0' = nto000m0,
+         'hto000m0' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+SAE <- my_list[['SAE']]|>
+  rename('pva200m0' = pva200m0,
+         'gre000m0' = tre200mn,
+         'prestam0' = tre200m0,
+         'tre200mx' = hns000m0,
+         'tre200mn' = rre150m0,
+         'tre200m0' = ure200mn,
+         'hns000m0' = ure200m0,
+         'rre150m0' = hto000m0,
+         'ure200m0' = ets150m0,
+         'hto000m0' = gre000m0,
+         'su2000m0' = prestam0,
+         'sremaxmv' = tre200mx,
+         'fkl010m0' = su2000m0,
+         'nto000m0' = sremaxmv,
+         'ure200mn' = fkl010m0,
+         'ets150m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+# ------------------------------------------------------------------------------
+
+# Create a vector containing the names of the data frames
+data_frames <- list(ANT, RAG, CHD, GSB, ENG, GVE, GRH, JUN, LUZ, NEU, SIA, SAE)
+
+# Initialize an empty data frame
+df <- data.frame()
+
+# Use a for loop to bind the rows of each data frame to df
+for (df_name in data_frames) {
+  df <- bind_rows(df, df_name)
+}
+
+meteo_data_part1 <- tibble(df|>
+  mutate(time = ymd(paste0(time, "15"))))
+```
+
+Data mess
+```{r}
+loop_2 <- c('BAS', 'CDF', 'DAV', 'OTL', 'SAM', 'SIO', 'STG', 'SMA')
+my_list_2 <- list()
+
+for (station in loop_2) {
+  # Filter data for the current station
+  filtered_data <- data |>
+    filter(stn == station)
+  # Append filtered data to the list
+  my_list_2[[station]] <- filtered_data
+}
+```
+
+
+```{r Edit the Dataframe, message=FALSE, warning=FALSE}
+
+BAS <- my_list_2[['BAS']]|>
+  rename('tso010m0' = pva200m0,
+         'pva200m0' = tre200mn,
+         'ets150m0' = tre200m0,
+         'nto000m0' = hns000m0,
+         'gre000m0' = rre150m0,
+         'prestam0' = ure200mn,
+         'tre200mx' =  ure200m0,
+         'tre200mn' = hto000m0,
+         'tre200m0' = ets150m0,
+         'hns000m0' = gre000m0,
+         'rre150m0' = prestam0,
+         'ure200m0' = tre200mx,
+         'hto000m0' = su2000m0,
+         'su2000m0' = sremaxmv,
+         'sremaxmv' = fkl010m0,
+         'fkl010m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+DAV <- my_list_2[['DAV']]|>
+  rename('tso010m0' = pva200m0,
+         'pva200m0' = tre200mn,
+         'ets150m0' = tre200m0,
+         'gre000m0' = hns000m0,
+         'prestam0' = rre150m0,
+         'tre200mx' = ure200mn,
+         'tre200mn' = ure200m0,
+         'tre200m0' = hto000m0,
+         'hns000m0' = ets150m0,
+         'rre150m0' = gre000m0,
+         'ure200m0' = prestam0,
+         'hto000m0' = tre200mx,
+         'su2000m0' = su2000m0,
+         'sremaxmv' = sremaxmv,
+         'fkl010m0' = fkl010m0,
+         'nto000m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+CDF <- my_list_2[['CDF']]|>
+  rename('tso010m0' = pva200m0,
+         'pva200m0' = tre200mn,
+         'ets150m0' = tre200m0,
+         'gre000m0' = hns000m0,
+         'prestam0' = rre150m0,
+         'tre200mx' = ure200mn,
+         'tre200mn' = ure200m0,
+         'tre200m0' = hto000m0,
+         'tre005mn' = ets150m0,
+         'hns000m0' = gre000m0,
+         'rre150m0' = prestam0,
+         'ure200m0' = tre200mx,
+         'hto000m0' = su2000m0,
+         'su2000m0' = sremaxmv,
+         'sremaxmv' = fkl010m0,
+         'fkl010m0' = nto000m0,
+         'nto000m0' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+OTL <- my_list_2[['OTL']]|>
+  rename('tso010m0' = pva200m0,
+         'tre005mn' = tre200mn,
+         'pva200m0' = tre200m0,
+         'ets150m0' = hns000m0,
+         'nto000m0' = rre150m0,
+         'gre000m0' = ure200mn,
+         'prestam0' = ure200m0,
+         'tre200mx' = hto000m0,
+         'tre200mn' = ets150m0,
+         'tre200m0' = gre000m0,
+         'hns000m0' = prestam0,
+         'rre150m0' = tre200mx,
+         'ure200m0' = su2000m0,
+         'hto000m0' = sremaxmv,
+         'su2000m0' = fkl010m0,
+         'sremaxmv' = nto000m0,
+         'fkl010m0' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+SAM <- my_list_2[['SAM']]|>
+  rename('tso010m0' = pva200m0,
+         'pva200m0' = tre200mn,
+         'nto000m0' = tre200m0,
+         'gre000m0' = hns000m0,
+         'prestam0' = rre150m0,
+         'tre200mx' = ure200mn,
+         'tre200mn' = ure200m0,
+         'tre200m0' = hto000m0,
+         'hns000m0' = ets150m0,
+         'rre150m0' = gre000m0,
+         'ure200m0' = prestam0,
+         'hto000m0' = tre200mx,
+         'su2000m0' = su2000m0,
+         'sremaxmv' = sremaxmv,
+         'fkl010m0' = fkl010m0,
+         'ets150m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+SIO <- my_list_2[['SIO']]|>
+  rename('tso010m0' = pva200m0,
+         'pva200m0' = tre200mn,
+         'gre000m0' = tre200m0,
+         'prestam0' = hns000m0,
+         'tre200mx' = rre150m0,
+         'tre200mn' = ure200mn,
+         'tre200m0' = ure200m0,
+         'hns000m0' = hto000m0,
+         'rre150m0' = ets150m0,
+         'ure200m0' = gre000m0,
+         'hto000m0' = prestam0,
+         'su2000m0' = tre200mx,
+         'sremaxmv' = su2000m0,
+         'fkl010m0' = sremaxmv,
+         'ets150m0' = fkl010m0,
+         'nto000m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+STG <- my_list_2[['STG']]|>
+  rename('tso010m0' = pva200m0,
+         'tre005mn' = tre200mn,
+         'pva200m0' = tre200m0,
+         'gre000m0' = hns000m0,
+         'prestam0' = rre150m0,
+         'tre200mx' = ure200mn,
+         'tre200mn' = ure200m0,
+         'tre200m0' = hto000m0,
+         'hns000m0' = ets150m0,
+         'rre150m0' = gre000m0,
+         'ure200m0' = prestam0,
+         'hto000m0' = tre200mx,
+         'su2000m0' = su2000m0,
+         'sremaxmv' = sremaxmv,
+         'fkl010m0' = fkl010m0,
+         'ets150m0' = nto000m0,
+         'nto000m0' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+SMA <- my_list_2[['SMA']]|>
+  rename('tso010m0' = pva200m0,
+         'pva200m0' = tre200mn,
+         'ets150m0' = tre200m0,
+         'nto000m0' = hns000m0,
+         'gre000m0' = rre150m0,
+         'prestam0' = ure200mn,
+         'tre200mx' = ure200m0,
+         'tre200mn' = hto000m0,
+         'tre200m0' = ets150m0,
+         'hns000m0' = gre000m0,
+         'rre150m0' = prestam0,
+         'ure200m0' = tre200mx,
+         'hto000m0' = su2000m0,
+         'su2000m0' = sremaxmv,
+         'sremaxmv' = fkl010m0,
+         'fkl010m0' = nto000m0,
+         'tre005mn' = tre005mn)|>
+  mutate_at(vars(-one_of(c('stn'))), as.numeric)
+
+# Create a vector containing the names of the data frames
+data_frames_2 <- list(BAS, CDF, DAV, OTL, SAM, SIO, STG, SMA)
+
+# Initialize an empty data frame
+df_2 <- data.frame()
+
+# Use a for loop to bind the rows of each data frame to df
+for (df_name in data_frames_2) {
+  df_2 <- bind_rows(df_2, df_name)
+}
+
+meteo_data_part2 <- tibble(df_2|>
+  mutate(time = ymd(paste0(time, "15"))))
+```
+
+
+```{r}
+my_filter <- c('ANT', 'RAG', 'CHD', 'GSB', 'ENG', 'GVE', 'GRH', 'JUN', 
+               'LUZ', 'NEU', 'SIA', 'SAE',collapse = '|')
+
+my_filter_2 <-  c('BAS', 'CDF', 'DAV', 'OTL', 'SAM', 'SIO', 
+                  'STG', 'SMA', collapse = '|')
+
+ure_200mn <- data |>
+  filter(!stn %in% my_filter) |>
+  filter(!stn %in% my_filter_2) |>
+  filter(!stn %in% c("stn", "ure200mn", collapse = '|')) |>
+  mutate(stn = ifelse(stn == "-", NA_real_, stn))|> 
+  mutate(stn = as.numeric(stn))|>
+  pull(stn)
+
+meteo_data_part2 <- tibble(meteo_data_part2|>
+  mutate("ure200mn" = ure_200mn))
+
+meteodata <- bind_rows(meteo_data_part1, meteo_data_part2)|>
+  arrange(stn) 
+```
+
+
+```{r}
+meteodata <- meteodata |>
+  rename('vapor_pressure' = pva200m0,
+         'evapotranspiration' = ets150m0,
+         'cloud_cover' = nto000m0,
+         'global_radiation' = gre000m0,
+         'pressure' = prestam0,
+         't2m_max' = tre200mx,
+         't2m_min' = tre200mn ,
+         't2m_mean' = tre200m0,
+         't005m_mean' = tre005mn,
+         'new_snow' = hns000m0,
+         'precipitation' = rre150m0,
+         'relative_humidity_min' = ure200mn,
+         'relative_humidity_mean' = ure200m0,
+         'snow_depth' = hto000m0,
+         'sunshine_absolute' = su2000m0,
+         'sunshine-relative' = sremaxmv,
+         'wind_speed' = fkl010m0,
+         'soil_temperature' = tso010m0)
+
+write_csv(meteodata, '../data/meteodata.csv')
+```
